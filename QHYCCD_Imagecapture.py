@@ -139,8 +139,8 @@ for i in range(value):
                 else:
                     img_np16 = np.frombuffer(imgdata_16,
                                              dtype=np.uint16).reshape((h.value, w.value))
-                    fname = (f"/Users/ajeems/Downloads/LU/phase shift files/data/"
-                             f"captured_image_{i+1:05d}.png")
+                    fname = (f"Save path---"
+                             f"captured_image_{i+1:05d}.png")  #Set the desired image save path by modifying the savePath
                     cv2.imwrite(fname, img_np16)
                     print(f"Saved 16‑bit PNG: {fname}")
                 break
