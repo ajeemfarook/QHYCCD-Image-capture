@@ -13,8 +13,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 # -------------------------------------------------------------------------
 # Load SDK
 qhyccddll = cdll.LoadLibrary(
-    '/Users/ajeems/Downloads/LU/phase shift files/dev files/sdk_mac_arm_25.06.16/usr/local/lib/libqhyccd.dylib'
-)
+    'add path of .dll or dylib')
 
 # --- prototypes left exactly as you had them --------------------------------
 qhyccddll.GetQHYCCDId.argtypes = [c_uint32, c_char_p]
@@ -98,10 +97,10 @@ qhyccddll.GetQHYCCDChipInfo(camhandle, byref(chipW), byref(chipH),
 print(f"Image size: {imageW.value}x{imageH.value}, Bits per pixel: {imageB.value}")
 
 # -------------------------------------------------------------------------
-# Exposure / gain
+# Exposure / gain ( Change the value depend on the output image )
 qhyccddll.SetQHYCCDBinMode(camhandle, 1, 1)
 qhyccddll.SetQHYCCDResolution(camhandle, 0, 0, imageW.value, imageH.value)
-qhyccddll.SetQHYCCDParam(camhandle, CONTROL_ID.CONTROL_EXPOSURE.value, 200000.0)
+qhyccddll.SetQHYCCDParam(camhandle, CONTROL_ID.CONTROL_EXPOSURE.value, 200000.0) 
 qhyccddll.SetQHYCCDParam(camhandle, CONTROL_ID.CONTROL_GAIN.value,     30.0)
 qhyccddll.SetQHYCCDParam(camhandle, CONTROL_ID.CONTROL_OFFSET.value,    1.0)
 qhyccddll.SetQHYCCDParam(camhandle, CONTROL_ID.CONTROL_USBTRAFFIC.value,30.0)
