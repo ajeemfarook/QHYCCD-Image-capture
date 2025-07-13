@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+"""Phase‑shift image acquisition with QHY5III224C & Arduino
+
+Runs on macOS (tested Ventura, Apple Silicon & Intel).
+Requirements
+------------
+Python 3.10+, NumPy, OpenCV‑Python, PySerial, QHYCCD SDK ≥ 23.12.
+
+Environment variables (optional)
+--------------------------------
+QHY_SDK_PATH   – absolute path to QHY SDK shared library (.dylib / .so / .dll)
+QHY_SAVE_PATH  – directory where PNGs will be saved (default ~/Pictures/QHYCCD)
+SERIAL_PORT    – serial device for Arduino (default auto‑detects /dev/cu.usbmodem*)
+LED_COUNT      – number of frames / LEDs (default 64)
+
+Usage
+-----
+$ python3 capture.py  # uses defaults / env vars
+$ QHY_SAVE_PATH=/Volumes/SSD/Captures LED_COUNT=128 python3 capture.py
+"""
+
 import cv2
 import numpy as np
 from ctypes import create_string_buffer
