@@ -238,25 +238,104 @@ finally:
     print("Camera and serial closed. Images saved in folder: " + save_dir)
 
 
-// Arduino Sketch: Simple LED Slave for PC-Master Sync
-// Listens for serial commands from Python at 115200 baud
-// Commands: "ON" to turn LED HIGH (max intensity), "OFF" to turn LOW
-// Use built-in LED (pin 13) or connect external LED to any digital pin
+#include <Adafruit_NeoPixel.h>
+
+// Pins
+#define BIG_RING_PIN 6
+#define SMALL_RING_PIN 7
+
+// LED counts
+#define BIG_RING_SIZE 24
+#define SMALL_RING_SIZE 8
+
+// Objects for each ring
+Adafruit_NeoPixel bigRing(BIG_RING_SIZE, BIG_RING_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel smallRing(SMALL_RING_SIZE, SMALL_RING_PIN, NEO_GRB + NEO_KHZ800);
+
+// Colors
+#define RED bigRing.Color(255, 0, 0)
+#define WHITE bigRing.Color(50, 50, 50)  // Brighter white for startup
+
+// Timing
+#define STARTUP_DURATION 5000  // 5s white startup (adjust or set to 0 to skip)
+
+// State flags
+bool startupDone = false;
+int currentLedIndex = 0;  // Track rotation position (0 to 23)
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);  // Built-in LED on pin 13
-  Serial.begin(115200);          // Match Python baud rate
-  digitalWrite(LED_BUILTIN, LOW); // Start OFF
+  Serial.begin(115200);
+  Serial.println("NeoPixel Rings: PC-Master Sync Mode");
+  Serial.println("Commands: 'LIGHT:i' to light red on position i, 'OFF' to clear");
+  
+  bigRing.begin();
+  smallRing.begin();
+  bigRing.show();   
+  smallRing.show(); 
+  bigRing.clear();
+  smallRing.clear();
+  bigRing.show();
+  smallRing.show();
+  
+  // Optional: Startup white light
+  if (STARTUP_DURATION > 0 && !startupDone) {
+    Serial.println("Startup: White ON for 5s...");
+    bigRing.fill(WHITE, 0, BIG_RING_SIZE);
+    smallRing.fill(WHITE, 0, SMALL_RING_SIZE);
+    bigRing.show();
+    smallRing.show();
+    delay(STARTUP_DURATION);
+    bigRing.clear();
+    smallRing.clear();
+    bigRing.show();
+    smallRing.show();
+    startupDone = true;
+    Serial.println("Startup done—ready for LIGHT commands.");
+  }
 }
 
 void loop() {
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     command.trim();
-    if (command == "ON") {
-      digitalWrite(LED_BUILTIN, HIGH);  // Instant ON for max intensity
+    
+    if (command.startsWith("LIGHT:")) {
+      // Parse LIGHT:i command from Python
+      int colonPos = command.indexOf(':');
+      if (colonPos != -1) {
+        String indexStr = command.substring(colonPos + 1);
+        int ledIndex = indexStr.toInt();
+        if (ledIndex >= 0 && ledIndex < BIG_RING_SIZE) {
+          currentLedIndex = ledIndex;  // Update position
+          Serial.print("Lighting red on big LED ");
+          Serial.print(ledIndex);
+          Serial.println(" (and mapped small ring)—hold until OFF");
+          
+          // Clear and light specific LEDs
+          bigRing.clear();
+          smallRing.clear();
+          
+          bigRing.setPixelColor(ledIndex, RED);
+          
+          // Map to small ring (proportional)
+          int smallIndex = map(ledIndex, 0, BIG_RING_SIZE - 1, 0, SMALL_RING_SIZE - 1);
+          smallRing.setPixelColor(smallIndex, RED);
+          
+          bigRing.show();
+          smallRing.show();
+        } else {
+          Serial.println("Invalid LED index—must be 0-23");
+        }
+      }
     } else if (command == "OFF") {
-      digitalWrite(LED_BUILTIN, LOW);   // OFF
+      Serial.println("OFF: Clearing all LEDs");
+      bigRing.clear();
+      smallRing.clear();
+      bigRing.show();
+      smallRing.show();
+    } else {
+      Serial.print("Unknown command: ");
+      Serial.println(command);
     }
   }
 }
