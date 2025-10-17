@@ -32,7 +32,7 @@ import os
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Load SDK
-qhyccddll = cdll.LoadLibrary('/Users/ajeems/Downloads/LU/phase shift files/dev files/sdk_mac_arm_25.06.16/usr/local/lib/libqhyccd.dylib')
+qhyccddll = cdll.LoadLibrary('your_sdk_path/libqhyccd.dylib')
 
 # Define required function prototypes
 qhyccddll.GetQHYCCDId.argtypes = [c_uint32, c_char_p]
@@ -155,8 +155,8 @@ for i in range(value):
                     print(f"Captured frame {i}: {w.value}x{h.value}, bpp={b.value}, channels={c.value}")
 
                     img_np = np.ctypeslib.as_array(imgdata_rgb).reshape((h.value, w.value, 3))
-                    os.makedirs("/Users/ajeems/Downloads/LU/phase shift files/data", exist_ok=True)
-                    filename = f"/Users/ajeems/Downloads/LU/phase shift files/data/captured_image_{i+1}.png"
+                    os.makedirs("/your path/", exist_ok=True)
+                    filename = f"/your path/captured_image_{i+1}.png"
                     cv2.imwrite(filename, img_np)
                     print(f"Image saved: {filename}")
                 break
