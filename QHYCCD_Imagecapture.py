@@ -216,7 +216,7 @@ with open(csv_filename, mode='w', newline='') as csvfile:
                     
 
                         # Save red channel as PNG
-                        filename = f"your_sdk_path/captured_red_{i+1}.png"
+                        filename = f"your_path/captured_red_{i+1}.png"
                         cv2.imwrite(filename, red_channel)
                         print(f"[{timestamp}] Red channel image saved: {filename}")
 
