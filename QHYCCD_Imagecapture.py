@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Load SDK
 qhyccddll = cdll.LoadLibrary(
-    '/Users/ajeems/Downloads/LU/phase shift files/dev files/sdk_mac_arm_25.06.16/usr/local/lib/libqhyccd.dylib'
+    'your_sdk_path/libqhyccd.dylib'
 )
 # Function prototypes
 qhyccddll.GetQHYCCDId.argtypes = [c_uint32, c_char_p]
@@ -136,7 +136,7 @@ ser = serial.Serial('/dev/cu.usbmodem1201', 115200, timeout=1)
 value = 640  # number of captures
 
 # CSV log setup
-csv_filename = '/Users/ajeems/Downloads/LU/phase shift files/final ver/data3/output.csv'
+csv_filename = 'your_sdk_path/output.csv'
 with open(csv_filename, mode='w', newline='') as csvfile:
     csvwriter = csv.writer(csvfile)
     csvwriter.writerow([
@@ -216,7 +216,7 @@ with open(csv_filename, mode='w', newline='') as csvfile:
                     
 
                         # Save red channel as PNG
-                        filename = f"/Users/ajeems/Downloads/LU/phase shift files/final ver/data3/captured_red_{i+1}.png"
+                        filename = f"your_sdk_path/captured_red_{i+1}.png"
                         cv2.imwrite(filename, red_channel)
                         print(f"[{timestamp}] Red channel image saved: {filename}")
 
