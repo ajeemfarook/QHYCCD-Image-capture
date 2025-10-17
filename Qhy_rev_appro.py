@@ -240,19 +240,16 @@ finally:
 
 #include <Adafruit_NeoPixel.h>
 
-// Pins
+// Pin for big ring only
 #define BIG_RING_PIN 6
-#define SMALL_RING_PIN 7
 
-// LED counts
+// LED count for big ring
 #define BIG_RING_SIZE 24
-#define SMALL_RING_SIZE 8
 
-// Objects for each ring
+// Object for big ring
 Adafruit_NeoPixel bigRing(BIG_RING_SIZE, BIG_RING_PIN, NEO_GRB + NEO_KHZ800);
-Adafruit_NeoPixel smallRing(SMALL_RING_SIZE, SMALL_RING_PIN, NEO_GRB + NEO_KHZ800);
 
-// Colors
+// Color
 #define RED bigRing.Color(255, 0, 0)
 #define WHITE bigRing.Color(50, 50, 50)  // Brighter white for startup
 
@@ -261,34 +258,25 @@ Adafruit_NeoPixel smallRing(SMALL_RING_SIZE, SMALL_RING_PIN, NEO_GRB + NEO_KHZ80
 
 // State flags
 bool startupDone = false;
-int currentLedIndex = 0;  // Track rotation position (0 to 23)
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("NeoPixel Rings: PC-Master Sync Mode");
-  Serial.println("Commands: 'LIGHT:i' to light red on position i, 'OFF' to clear");
+  Serial.println("Big Ring Only: PC-Master Sync Mode");
+  Serial.println("Commands: 'LIGHT:i' to light red on position i (0-23), 'OFF' to clear");
   
   bigRing.begin();
-  smallRing.begin();
-  bigRing.show();   
-  smallRing.show(); 
+  bigRing.show();  // Init all off
   bigRing.clear();
-  smallRing.clear();
   bigRing.show();
-  smallRing.show();
   
   // Optional: Startup white light
   if (STARTUP_DURATION > 0 && !startupDone) {
     Serial.println("Startup: White ON for 5s...");
     bigRing.fill(WHITE, 0, BIG_RING_SIZE);
-    smallRing.fill(WHITE, 0, SMALL_RING_SIZE);
     bigRing.show();
-    smallRing.show();
     delay(STARTUP_DURATION);
     bigRing.clear();
-    smallRing.clear();
     bigRing.show();
-    smallRing.show();
     startupDone = true;
     Serial.println("Startup done—ready for LIGHT commands.");
   }
@@ -306,33 +294,22 @@ void loop() {
         String indexStr = command.substring(colonPos + 1);
         int ledIndex = indexStr.toInt();
         if (ledIndex >= 0 && ledIndex < BIG_RING_SIZE) {
-          currentLedIndex = ledIndex;  // Update position
-          Serial.print("Lighting red on big LED ");
+          Serial.print("Lighting red on big ring LED ");
           Serial.print(ledIndex);
-          Serial.println(" (and mapped small ring)—hold until OFF");
+          Serial.println("—hold until OFF");
           
-          // Clear and light specific LEDs
+          // Clear and light specific LED
           bigRing.clear();
-          smallRing.clear();
-          
           bigRing.setPixelColor(ledIndex, RED);
-          
-          // Map to small ring (proportional)
-          int smallIndex = map(ledIndex, 0, BIG_RING_SIZE - 1, 0, SMALL_RING_SIZE - 1);
-          smallRing.setPixelColor(smallIndex, RED);
-          
           bigRing.show();
-          smallRing.show();
         } else {
           Serial.println("Invalid LED index—must be 0-23");
         }
       }
     } else if (command == "OFF") {
-      Serial.println("OFF: Clearing all LEDs");
+      Serial.println("OFF: Clearing big ring");
       bigRing.clear();
-      smallRing.clear();
       bigRing.show();
-      smallRing.show();
     } else {
       Serial.print("Unknown command: ");
       Serial.println(command);
