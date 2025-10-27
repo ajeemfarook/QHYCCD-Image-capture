@@ -115,8 +115,9 @@ imgdata_raw16 = (c_ubyte * frame_bytes)()
 
 # --- Setup serial connection for Arduino (use first successful port) ---
 ports = [
-    '/dev/cu.usbmodem11301',
-    '/dev/cu.usbmodem1301',
+    '/dev/cu.usbmodem1301',  
+    '/dev/cu.usbmodem11301', 
+    '/dev/cu.usbmodem1401',    # Your actual port first
     '/dev/cu.usbmodem1201',
     '/dev/cu.usbmodem11201'
 ]
@@ -138,8 +139,10 @@ if ser is None:
 
 time.sleep(2)  # Allow Arduino reset
 
-value = 64  # number of captures
-
+BIG_RING_SIZE = 24
+value = 24  # number of captures
+EXPOSURE_MS = 200  # Match exposure (200000 us = 200 ms)
+CAPTURE_SETTLE_DELAY = 0.05  # 50ms delay after LED ON for peak capture
 
 # --- Base folder where captured runs will be saved ---
 base_dir = "/Users/ajeems/Downloads/LU/phase shift files/final ver"
@@ -155,18 +158,24 @@ os.makedirs(save_dir)
 print(f"Saving results in: {save_dir}")
 
 try:
-    # --- PC-Master Capture Loop ---
+    # Set idle brightness to 10 for all red idle mode
+    ser.write(b'IDLE_BRIGHT:10\n')
+    ser.flush()
+    print("Idle brightness set to 10")
+
+    # --- PC-Master Capture Loop with LED Sync ---
     for i in range(value):
         print(f"Starting PC-guided capture {i+1}/{value}...")
 
-        # Step 1: Signal Arduino LED ON (start of sequence)
+        # Step 1: Signal Arduino LED ON (cycle LED index, hold for exposure duration)
+        led_index = i % BIG_RING_SIZE  # Cycle through 24 LEDs
         led_start_time = time.time()
-        ser.write(b'ON\n')
+        ser.write(f'LIGHT:{led_index}:{EXPOSURE_MS}\n'.encode())
         ser.flush()
-        print(f"LED ON command sent at {led_start_time:.6f}")
+        print(f"LED {led_index} ON for {EXPOSURE_MS}ms sent at {led_start_time:.6f}")
 
-        # Step 2: Brief settle time for LED to reach max intensity
-        time.sleep(0.001)  # ~1ms settle
+        # Step 2: Brief settle time for LED to reach max intensity + camera sync
+        time.sleep(0.001 + CAPTURE_SETTLE_DELAY)  # 1ms LED + 50ms for peak
 
         # Step 3: Start camera exposure
         capture_start_time = time.time()
@@ -215,10 +224,12 @@ try:
                 f"Timing -> Exposure Duration: {duration:.6f}s, LED-ON to Exposure Latency: {led_to_capture_latency:.6f}s"
             )
 
-            # Step 5: Signal Arduino LED OFF (end of sequence, signal "ready")
-            ser.write(b'OFF\n')
-            ser.flush()
-            print("LED OFF command sent—ready for next capture")
+        # Step 5: Wait remaining hold time if needed (total ~ exposure duration)
+        remaining_hold = EXPOSURE_MS / 1000.0 - (capture_end_time - led_start_time)
+        if remaining_hold > 0:
+            time.sleep(remaining_hold)
+
+        # No explicit OFF—Arduino auto-clears after hold duration
 
         # Optional: Brief pause between captures (e.g., for settling/dithering)
         time.sleep(0.05)
@@ -227,8 +238,9 @@ try:
 
 except Exception as e:
     print(f"Error during sequence: {e}")
-    ser.write(b'OFF\n')  # Ensure OFF on error
-    ser.flush()
+    if ser:
+        ser.write(b'OFF\n')  # Ensure OFF on error
+        ser.flush()
 
 finally:
     # --- Cleanup ---
@@ -236,83 +248,3 @@ finally:
     for s in serial_connections:
         s.close()
     print("Camera and serial closed. Images saved in folder: " + save_dir)
-
-
-#include <Adafruit_NeoPixel.h>
-
-// Pin for big ring only
-#define BIG_RING_PIN 6
-
-// LED count for big ring
-#define BIG_RING_SIZE 24
-
-// Object for big ring
-Adafruit_NeoPixel bigRing(BIG_RING_SIZE, BIG_RING_PIN, NEO_GRB + NEO_KHZ800);
-
-// Color
-#define RED bigRing.Color(255, 0, 0)
-#define WHITE bigRing.Color(50, 50, 50)  // Brighter white for startup
-
-// Timing
-#define STARTUP_DURATION 5000  // 5s white startup (adjust or set to 0 to skip)
-
-// State flags
-bool startupDone = false;
-
-void setup() {
-  Serial.begin(115200);
-  Serial.println("Big Ring Only: PC-Master Sync Mode");
-  Serial.println("Commands: 'LIGHT:i' to light red on position i (0-23), 'OFF' to clear");
-  
-  bigRing.begin();
-  bigRing.show();  // Init all off
-  bigRing.clear();
-  bigRing.show();
-  
-  // Optional: Startup white light
-  if (STARTUP_DURATION > 0 && !startupDone) {
-    Serial.println("Startup: White ON for 5s...");
-    bigRing.fill(WHITE, 0, BIG_RING_SIZE);
-    bigRing.show();
-    delay(STARTUP_DURATION);
-    bigRing.clear();
-    bigRing.show();
-    startupDone = true;
-    Serial.println("Startup done—ready for LIGHT commands.");
-  }
-}
-
-void loop() {
-  if (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-    
-    if (command.startsWith("LIGHT:")) {
-      // Parse LIGHT:i command from Python
-      int colonPos = command.indexOf(':');
-      if (colonPos != -1) {
-        String indexStr = command.substring(colonPos + 1);
-        int ledIndex = indexStr.toInt();
-        if (ledIndex >= 0 && ledIndex < BIG_RING_SIZE) {
-          Serial.print("Lighting red on big ring LED ");
-          Serial.print(ledIndex);
-          Serial.println("—hold until OFF");
-          
-          // Clear and light specific LED
-          bigRing.clear();
-          bigRing.setPixelColor(ledIndex, RED);
-          bigRing.show();
-        } else {
-          Serial.println("Invalid LED index—must be 0-23");
-        }
-      }
-    } else if (command == "OFF") {
-      Serial.println("OFF: Clearing big ring");
-      bigRing.clear();
-      bigRing.show();
-    } else {
-      Serial.print("Unknown command: ");
-      Serial.println(command);
-    }
-  }
-}
